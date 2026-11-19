@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SuperMart 3D - Professional In-Store Shopping Experience</title>
+  <link rel="stylesheet" href="./style.css">
+
+  <!-- Three.js ES Module Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Loading Screen with Progress Bar -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">🛒</div>
+      <h2 class="loading-title">SUPERMART 3D</h2>
+      <p class="loading-subtitle">Stocking shelves & preparing aisles...</p>
+      <div class="loading-bar-track">
+        <div id="loading-bar" class="loading-bar-fill"></div>
+      </div>
+      <div id="loading-status" class="loading-status">Loading 3D assets...</div>
+    </div>
+  </div>
+
+  <!-- Minimal Modern In-Game HUD -->
+  <div id="hud">
+    <!-- Center Reticle / Subtle Aim Crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- Hovered Product Floating Details Card -->
+    <div id="product-tooltip" class="hidden">
+      <div class="tooltip-header">
+        <span id="tooltip-name">Product Name</span>
+        <span id="tooltip-category">Fruits</span>
+      </div>
+      <div id="tooltip-price">₹0.00</div>
+      <div id="tooltip-action">Click / Tap to add to trolley</div>
+    </div>
+
+    <!-- Top HUD Bar: Branding, Ambient Audio Toggle, Help & Cart -->
+    <header class="hud-top-bar">
+      <div class="store-branding">
+        <span class="brand-icon">🛒</span>
+        <div>
+          <div class="brand-title">SUPERMART 3D</div>
+          <div class="brand-subtitle">Connaught Place • Store #104</div>
+        </div>
+      </div>
+
+      <div class="top-bar-actions">
+        <!-- Ambient Store Sound Mute / Unmute Button -->
+        <button id="sound-btn" class="icon-hud-btn" title="Toggle Sound (Mute/Unmute)" aria-label="Toggle Sound">
+          <span id="sound-icon">🔊</span>
+        </button>
+
+        <!-- Controls Help Button -->
+        <button id="help-btn" class="icon-hud-btn help-btn" title="How to Shop / Controls" aria-label="Help">?</button>
+
+        <!-- Cart Button with Count and Live Total in ₹ -->
+        <button id="cart-btn" class="cart-btn" aria-label="View shopping trolley">
+          <span class="cart-btn-icon">🛒</span>
+          <span class="cart-btn-label">Trolley</span>
+          <span id="cart-badge" class="cart-badge">0</span>
+          <span id="cart-btn-total" class="cart-btn-total">₹0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Interactive Checkout Desk Proximity Prompt -->
+    <div id="zone-prompt" class="hidden">
+      <span class="key-badge">E</span> Checkout Counter (Ready to Pay)
+    </div>
+
+    <!-- Bottom HUD Bar: Walking Controls & Trolley Preview -->
+    <footer class="hud-bottom-bar">
+      <!-- Desktop Quick Control Hint Chip -->
+      <div class="controls-hint">
+        <div><span class="key-tag">Drag</span> Look 360°</div>
+        <div><span class="key-tag">W A S D</span> Walk</div>
+        <div><span class="key-tag">Click item</span> Drop in Trolley</div>
+      </div>
+
+      <!-- Attached Trolley Indicator Chip -->
+      <div id="mini-cart-container" title="Click to view cart contents">
+        <div class="mini-cart-icon">🛒</div>
+        <div class="mini-cart-info">
+          <h5>Your Trolley</h5>
+          <span id="trolley-status-text">Ready in front</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Mobile Dual-Touch Controls (Left Joystick for movement, Right Zone for looking) -->
+  <div id="mobile-touch-container">
+    <div id="joystick-boundary">
+      <div id="joystick-knob"></div>
+    </div>
+    <div id="touch-look-zone"></div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toast-container"></div>
+
+  <!-- Welcome / Tutorial Modal on First Load -->
+  <div id="instructions-overlay">
+    <div class="intro-dialog">
+      <div class="intro-logo">🛒</div>
+      <h1>Welcome to SuperMart 3D</h1>
+      <p>A professional first-person 3D supermarket shopping experience. Your trolley is attached in front of you and follows automatically.</p>
+
+      <div class="intro-features">
+        <div class="feature-pill">
+          <strong>🖱️ Look Around</strong>
+          Click & drag mouse (or drag right side on mobile).
+        </div>
+        <div class="feature-pill">
+          <strong>🚶 Walk Aisles</strong>
+          Use WASD / Arrow keys or the mobile virtual joystick.
+        </div>
+        <div class="feature-pill">
+          <strong>🍎 Pick Items</strong>
+          Hover over any product and click/tap to drop it into your trolley.
+        </div>
+        <div class="feature-pill">
+          <strong>💳 5% GST Billing</strong>
+          Walk to the front counter and press <b>E</b> to get your bill.
+        </div>
+      </div>
+
+      <button id="btn-start-shopping" class="btn-start-shopping">
+        <span>Start Shopping</span> ➜
+      </button>
+      <div class="click-hint">Click Start to begin your shopping trip</div>
+    </div>
+  </div>
+
+  <!-- Help & Controls Dialog (Opened via '?' button) -->
+  <div id="help-overlay" class="modal-overlay hidden">
+    <div id="help-card" class="help-card">
+      <div class="help-header">
+        <h3>🛒 Supermarket Controls</h3>
+        <button id="help-close-btn" class="btn-close-drawer" aria-label="Close help">&times;</button>
+      </div>
+      <div class="help-list">
+        <div class="help-item">
+          <div class="help-icon">🖱️</div>
+          <div class="help-text">
+            <strong>Looking Around (360°)</strong>
+            <p>Click & hold anywhere on screen, then drag your mouse to look around freely. On mobile/tablet, swipe on the right half of the screen.</p>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="help-icon">🚶</div>
+          <div class="help-text">
+            <strong>Walking & Movement</strong>
+            <p>Use <b>W, A, S, D</b> or Arrow keys on desktop. On phones/tablets, use the on-screen virtual joystick on the bottom-left.</p>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="help-icon">🛒</div>
+          <div class="help-text">
+            <strong>Attached Trolley (Always in Front)</strong>
+            <p>Your trolley stays in front of you wherever you walk. Picked items automatically drop into the basket and stack inside it.</p>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="help-icon">🍎</div>
+          <div class="help-text">
+            <strong>Picking Products (3.5m Reach)</strong>
+            <p>Hover over any item on the shelves to view its name and ₹ price. A single click adds it directly to your trolley.</p>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="help-icon">💳</div>
+          <div class="help-text">
+            <strong>Checkout & 5% GST Receipt</strong>
+            <p>Walk to the front billing counter (Lane 1) and press <b>E</b> or click Checkout in your trolley drawer to see your final bill.</p>
+          </div>
+        </div>
+      </div>
+      <button id="btn-help-got-it" class="btn-help-got-it">Got it, back to shopping!</button>
+    </div>
+  </div>
+
+  <!-- Cart Slide-Out Drawer Panel -->
+  <div id="cart-overlay" class="cart-overlay hidden"></div>
+  <aside id="cart-drawer" class="cart-drawer">
+    <div class="cart-header">
+      <h3>🛒 Shopping Trolley</h3>
+      <button id="cart-close-btn" class="btn-close-drawer" aria-label="Close cart">&times;</button>
+    </div>
+
+    <!-- Items List -->
+    <div id="cart-items-list" class="cart-items-list">
+      <!-- Dynamically populated rows -->
+    </div>
+
+    <!-- Cart Summary & Actions -->
+    <div class="cart-footer">
+      <div class="cart-totals-breakdown">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span id="cart-subtotal">₹0.00</span>
+        </div>
+        <div class="total-row">
+          <span>GST (5%)</span>
+          <span id="cart-tax">₹0.00</span>
+        </div>
+        <div class="total-row grand-total">
+          <span>Total</span>
+          <span id="cart-total">₹0.00</span>
+        </div>
+      </div>
+
+      <div class="cart-action-buttons">
+        <button id="cart-clear-btn" class="btn-clear-cart">Clear</button>
+        <button id="cart-checkout-btn" class="btn-proceed-checkout" disabled>
+          <span>Proceed to Checkout</span> ➜
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Checkout / Billing Receipt Modal -->
+  <div id="checkout-overlay" class="modal-overlay hidden">
+    <div id="checkout-modal" class="receipt-card">
+      <div class="receipt-header">
+        <div class="receipt-logo">★ SUPERMART 3D ★</div>
+        <div class="receipt-meta">
+          <div>STORE #104 • CONNAUGHT PLACE, NEW DELHI</div>
+          <div>GSTIN: 07AAAAA0000A1Z5 • FSSAI: 10018011000123</div>
+          <div>CASHIER: LANE 1 (AUTO-CHECKOUT)</div>
+          <div>DATE: <span id="receipt-date">--</span></div>
+          <div>ORDER: <span id="receipt-order-num">SM-10492</span></div>
+        </div>
+      </div>
+
+      <!-- Itemized Receipt Table -->
+      <table class="receipt-table">
+        <tbody id="receipt-items">
+          <!-- Dynamically populated receipt items -->
+        </tbody>
+      </table>
+
+      <!-- Subtotal & Tax Breakdown -->
+      <div class="receipt-summary-block">
+        <div class="receipt-summary-row">
+          <span>SUBTOTAL:</span>
+          <span id="receipt-subtotal">₹0.00</span>
+        </div>
+        <div class="receipt-summary-row">
+          <span>GST (5%):</span>
+          <span id="receipt-tax">₹0.00</span>
+        </div>
+        <div class="receipt-summary-row total-bold">
+          <span>TOTAL DUE:</span>
+          <span id="receipt-total">₹0.00</span>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="receipt-payment-section">
+        <div class="payment-title">Select Payment Method</div>
+        <div class="payment-options">
+          <div class="payment-opt active">💳 Card</div>
+          <div class="payment-opt">📱 UPI / Pay</div>
+          <div class="payment-opt">💵 Cash</div>
+        </div>
+      </div>
+
+      <!-- Barcode simulation -->
+      <div class="barcode-strip">||| | |||| || | |||| |||</div>
+
+      <!-- Actions -->
+      <div class="receipt-buttons">
+        <button id="btn-close-checkout" class="btn-receipt-cancel">Cancel</button>
+        <button id="btn-confirm-payment" class="btn-receipt-pay">Confirm & Pay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas for Celebratory Checkout Animation -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Order Success Confirmation Modal -->
+  <div id="success-overlay" class="modal-overlay hidden">
+    <div id="success-modal" class="success-card">
+      <div class="success-badge">✓</div>
+      <h2>Order Placed!</h2>
+      <p>Thank you for shopping at SuperMart 3D! Your order has been successfully billed and processed.</p>
+
+      <div class="success-details-pill">
+        <div class="pill-item">
+          <span>Total Paid</span>
+          <strong id="success-total-paid">₹0.00</strong>
+        </div>
+        <div class="pill-item">
+          <span>Items Purchased</span>
+          <strong id="success-item-count">0 items</strong>
+        </div>
+        <div class="pill-item">
+          <span>Receipt</span>
+          <strong>Digital Sent</strong>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <button id="btn-shop-again" class="btn-success-primary">Start New Shopping Trip</button>
+        <button id="btn-close-success" class="btn-success-secondary">Keep Exploring</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Controller -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
